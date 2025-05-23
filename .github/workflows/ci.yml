@@ -1,0 +1,25 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main # กำหนดให้ Pipeline ทำงานเมื่อมีการ push ไปยัง branch main
+
+jobs:
+  build: # ชื่อของ job (job ID)
+    runs-on: ubuntu-latest # กำหนดให้รันบนระบบปฏิบัติการ Ubuntu ล่าสุด
+
+  steps:
+    - name: Checkout code # ขั้นตอนที่ 1: ดาวน์โหลดโค้ดจาก repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js # ขั้นตอนที่ 2: ติดตั้ง Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18" # ใช้ Node.js เวอร์ชัน 18
+
+    - name: Install dependencies # ขั้นตอนที่ 3: ติดตั้ง dependencies
+      run: npm install
+
+    - name: Run tests # ขั้นตอนที่ 4: รันการทดสอบ
+      run: npm test
