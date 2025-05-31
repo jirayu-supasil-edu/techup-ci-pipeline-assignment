@@ -1,37 +1,57 @@
-name: CI with SonarCloud # ชื่อ Workflow ที่จะแสดงในแท็บ Actions
+name: CI Pipeline Assignment
 
 on:
   push:
     branches:
-      - main # ทำงานเมื่อมีการ push ไปยัง branch main
-  pull_request:
-    types: [opened, synchronize, reopened] # ทำงานเมื่อมีการสร้างหรืออัปเดต PR
+      - main
 
 jobs:
   build:
-    name: Build and Analyze # ชื่องานที่จะทำใน workflow นี้
-    runs-on: ubuntu-latest # ใช้ runner ที่เป็น Ubuntu version ล่าสุด
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3 # ดึงโค้ดจาก GitHub repository
+        uses: actions/checkout@v2
         with:
-          fetch-depth: 0 # ดึง commit history ทั้งหมด เพื่อให้ Sonar วิเคราะห์ new code ได้ถูกต้อง
+          fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3 # ติดตั้ง Node.js บน runner
+        uses: actions/setup-node@v2
         with:
-          node-version: "18" # ระบุเวอร์ชัน Node.js ที่ต้องการใช้
+          node-version: "18"
 
       - name: Install dependencies
-        run: npm install # ติดตั้ง dependencies จาก package.json
+        run: npm install
 
       - name: Run tests
-        run: npm test # รัน unit tests (ควรมี coverage report ด้วย)
+        run: npm test
+
+      - name: Deploy
+        run: |
+          echo "Deploying to production..."
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2 # ใช้ Action ของ SonarCloud สำหรับสแกนโค้ด
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # ใช้ token ที่เก็บไว้ใน GitHub Secret
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: . # ระบุ root ของโปรเจคที่มีไฟล์ sonar-project.properties
+          projectBaseDir: .
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE_NAME }} \
+          --source . \
+          --region ${{ secrets.GCP_REGION }} \
+          --platform managed \
+          --allow-unauthenticated
