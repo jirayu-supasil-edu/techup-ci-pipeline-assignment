@@ -1,4 +1,4 @@
-name: CI Pipeline Assignment
+name: CI Pipeline Assignment-1
 
 on:
   push:
